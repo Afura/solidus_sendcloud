@@ -3,8 +3,8 @@
 module SolidusSendcloud
   class Configuration
     # Define here the settings for this extension, e.g.:
-    #
-    # attr_accessor :my_setting
+    
+    attr_accessor :public_key, :secret_key
   end
 
   class << self
