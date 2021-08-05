@@ -3,6 +3,13 @@ module Spree
       skip_before_action :verify_authenticity_token
       before_action :validate_payload, only: [:receive]
 
+      READY_TO_SHIP = "Ready to send"
+      CANCELLED = "Cancelled"
+      CANCELLATION_REQUESTED = "Cancellation Requested"
+      ANNOUNCED = "Announced"
+      NO_LABEL = "No Label"
+      ANNOUNCEMENT_FAILED = "Announcement Failed"
+
       def receive
          # TODO: Use Solidus_Webhooks instead
          begin
@@ -15,24 +22,30 @@ module Spree
          end
          render json: {:status => 200}
       end
-
-      def handle_test_webhook
-      end
       
       def handle_parcel_status_changed(payload)
          # TODO: Guard class and error logging?
          # TODO: Ensure we only change that what needs to be changed
          parcel = payload[:parcel]
-         shipment = Spree::Shipment.find_by(number: parcel[:external_shipment_id]) 
+         shipment = Spree::Shipment.find_by(sendcloud_parcel_id: parcel[:external_shipment_id])
 
-         if shipment.tracking.blank? && parcel[:tracking_number].present? 
-            shipment.update!(tracking: parcel[:tracking_number])
+         if shipment
+            shipment.update!(tracking: parcel[:tracking_number]) if parcel[:tracking_number].present?
+            shipment.ship! if shipment.can_ship?
          end
+      end
 
-         if shipment.can_ship?
-            shipment.ship!
-         end
+      def handle_parcel_status_change(payload)
+         # parcel = payload[:parcel]
+         # shipment = Spree::Shipment.find_by(sendcloud_parcel_id: parcel[:external_shipment_id]) 
 
+         # SolidusSendcloud::ParcelStatus.create!({
+         #    shipment_id: shipment.id,
+         #    status_id: payload[:status][:message]
+         #    status_message: payload[:status][:message]
+         # })
+
+         true
       end
 
       private

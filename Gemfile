@@ -23,6 +23,10 @@ else
   gem 'sqlite3'
 end
 
+group :test do
+  gem 'shoulda-matchers'
+end
+
 gemspec
 
 # Use a local Gemfile to include development dependencies that might not be

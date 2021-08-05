@@ -1,10 +1,17 @@
 # frozen_string_literal: true
 
+require 'pry'
+
+require 'vcr'
+require 'webmock/rspec'
+
+WebMock.disable_net_connect!(allow_localhost: true)
+
 # Configure Rails Environment
 ENV['RAILS_ENV'] = 'test'
 
 # Run Coverage report
-require 'solidus_dev_support/rspec/coverage'
+# require 'solidus_dev_support/rspec/coverage'
 
 # Create the dummy app if it's still missing.
 dummy_env = "#{__dir__}/dummy/config/environment.rb"
@@ -12,6 +19,8 @@ system 'bin/rake extension:test_app' unless File.exist? dummy_env
 require dummy_env
 
 # Requires factories and other useful helpers defined in spree_core.
+require 'solidus_dev_support/rspec/feature_helper'
+
 require 'solidus_dev_support/rspec/feature_helper'
 
 # Requires supporting ruby files with custom matchers and macros, etc,
@@ -27,5 +36,12 @@ RSpec.configure do |config|
 
   if Spree.solidus_gem_version < Gem::Version.new('2.11')
     config.extend Spree::TestingSupport::AuthorizationHelpers::Request, type: :system
+  end
+end
+
+Shoulda::Matchers.configure do |config|
+  config.integrate do |with|
+    with.test_framework :rspec
+    with.library :rails
   end
 end

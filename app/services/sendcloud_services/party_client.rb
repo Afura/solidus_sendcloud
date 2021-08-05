@@ -1,7 +1,12 @@
 require 'faraday'
+require 'httparty'
 
 module SendcloudServices
-   class Client
+   class PartyClient
+      include HTTParty
+      format :json
+      base_uri 'https://panel.sendcloud.nl/api/v2/'
+
       # Config
       DEFAULT_OPEN_TIMEOUT = 60
       DEFAULT_TIMEOUT = 120
@@ -13,10 +18,9 @@ module SendcloudServices
       attr_reader :api_endpoint, :api_key, :api_secret, :content_type
 
       def initialize(api_key = nil, api_secret = nil)
-         @api_endpoint     = SENDCLOUD_API
          @api_key          = api_key
          @api_secret       = api_secret
-         @content_type     = {"Content-Type" => "application/json"} 
+         @options = { :basic_auth => {:username => api_key, :password => api_secret} } 
       end
       
       def get_parcels
@@ -25,6 +29,7 @@ module SendcloudServices
 
       def create_parcel(params)
          request(:post, PARCEL_RESOURCE, params)
+         # self.class.post(PARCEL_RESOURCE, body: params, basic_auth: auth, headers: {'Content-Type' => 'application/json'})
       end
 
       def update_parcel(params)
@@ -38,16 +43,12 @@ module SendcloudServices
       private
 
       def request(method, resource, params = {})
-         response = client.public_send(method, SENDCLOUD_API + resource, params, content_type)
-         parsed_response = Oj.load(response.body)
-       end
-      
-      def client
-         @client ||= Faraday.new(SENDCLOUD_API) do |client|
-            client.adapter Faraday.default_adapter
-            client.request :url_encoded
-            client.basic_auth(api_key, api_secret)
-          end
+         self.class.public_send(method, PARCEL_RESOURCE, body: params, basic_auth: auth, headers: {'Content-Type' => 'application/json'} )
+      end
+
+      # @return [Hash] the basic auth hash based on the api_key and api_secret
+      def auth
+         { username: api_key, password: api_secret}
       end
    end
 end

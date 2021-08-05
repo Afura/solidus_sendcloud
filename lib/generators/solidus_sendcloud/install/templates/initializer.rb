@@ -4,3 +4,5 @@ SolidusSendcloud.configure do |config|
   config.public_key = 'PUBLIC_KEY'
   config.secret_key = 'SECREY_KEY'
 end
+
+Spree::SendcloudSubscriber.activate

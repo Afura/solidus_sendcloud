@@ -1,22 +1,30 @@
 module SendcloudServices
-   class ShipmentSerializer
+   class ShipmentSerializer < ApplicationService
     attr_reader :shipment, :order, :address
 
       def initialize(shipment)
+        raise ArgumentError, 'A valid Spree::Shipment instance is required!' unless shipment.instance_of? Spree::Shipment
+        
         @shipment = shipment
         @order = shipment.order
         @address = @order.ship_address
       end
   
-      def to_json
-         {
+      # Does not support:
+      # - Multi parcels (quantity field / shipment.cartons.count)
+      # - Carton Dimensions
+      # - Label generation
+      # - Insurance
+      # - Service point
+      # - Custom shipment type
+      def call
+          {
             parcel: {
-              id: shipment.sendcloud_parcel_id
+              id: shipment.sendcloud_parcel_id,
               order_number: order.number,
               external_reference: shipment.number,
               email: order.email,
-
-              name: address.name,
+              name: SolidusSupport.combined_first_and_last_name_in_address? ? address.name : address.full_name,
               company_name: address.company,
               address: address.address1,
               address2: address.address2,
@@ -25,17 +33,12 @@ module SendcloudServices
               postal_code: address.zipcode,
               country: address.country.iso,
               telephone: address.phone,
-
-              quantity: shipment.cartons.count,
               weight: shipment_weight,
-
               parcel_items: line_items,
-
               customs_invoice_nr: order.number,
               customs_shipment_type: 2,
               total_order_value: shipment.included_tax_total,
               total_order_value_currency: order.currency,
-
               request_label: false,
             }
           }.to_json
@@ -51,15 +54,15 @@ module SendcloudServices
       def line_items
         @order.line_items.map do |line_item|
           {
-            description: line_item.variant.name,
-            quantity: line_item.quantity,
-            weight: line_item.variant.weight,
-            value: line_item.price,
-            hs_code: line_item.variant.hs_tarrif_code,
-            origin_country: line_item.variant.country_of_manufacture,
             sku: line_item.variant.sku,
             product_id: line_item.variant.id,
-            properties: line_item_properties(line_item)
+            description: line_item.variant.name,
+            properties: line_item_properties(line_item),
+            value: line_item.price,
+            quantity: line_item.quantity,
+            weight: line_item_weight(line_item),
+            hs_code: '', #line_item.variant&.hs_tarrif_code
+            origin_country: line_item.variant&.country_of_manufacture&.iso
           }
         end
       end
@@ -68,12 +71,18 @@ module SendcloudServices
       #
       # @return [Int] sum of weight as entered per line item * quantity.
       def shipment_weight
-        @shipment.line_items.inject(0) do |weight, line_item|
+        shipment_weight = @shipment.line_items.inject(0) do |weight, line_item|
           line_item_weight = line_item.variant.weight
           weight + (line_item_weight ? (line_item.quantity * line_item_weight) : 0)
         end
+
+        shipment_weight.nonzero? || 1
       end 
-  
+
+      def line_item_weight(line_item)
+        line_item.variant.weight.nonzero? || 1
+      end
+
       # Creates a key value pair out of the variant's (sorted) option values.
       #
       # @return [Hash] string key value pair of option_type and option_value.
