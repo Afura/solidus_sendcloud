@@ -12,7 +12,7 @@ module Spree
 
          base.state_machine do
             after_transition do |shipment, transition|
-               binding.pry
+               # binding.pry
                Spree::Event.fire "shipment_#{transition.to_name}", shipment: shipment
             end
          end
@@ -22,7 +22,7 @@ module Spree
          end
 
          base.after_commit do
-            binding.pry
+            # binding.pry
             Spree::Event.fire 'shipment_updated', shipment: self
          end
       end

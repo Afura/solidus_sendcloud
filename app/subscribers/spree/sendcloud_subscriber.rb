@@ -2,21 +2,21 @@ module Spree
    module SendcloudSubscriber
       include Spree::Event::Subscriber
    
-      event_action :order_finalized
-      event_action :order_recalculated
+      # event_action :order_finalized
+      # event_action :order_recalculated
       # event_action :shipment_ready
       # event_action :shipment_resume
       # event_action :shipment_cancel
 
       # event_action :shipment_updated
 
-      def order_finalized
-         binding.pry
-      end
+      # def order_finalized
+      #    binding.pry
+      # end
 
-      def order_recalculated
-         binding.pry
-      end
+      # def order_recalculated
+      #    binding.pry
+      # end
    
       def shipment_ready(event)
          Spree::SendcloudLogger.debug("Sending #{event.payload[:shipment].number} to Sendcloud")
